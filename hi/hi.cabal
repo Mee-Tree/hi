@@ -1,0 +1,54 @@
+cabal-version:       >=1.10
+
+name:                hi
+version:             0.1.0.0
+build-type:          Simple
+author:              Dmitry Polchinsky
+maintainer:          meetree@ya.ru
+
+library
+  hs-source-dirs:      src
+  exposed-modules:    
+    Hi.Action
+    Hi.Base
+    Hi.Evaluator
+    Hi.Parser
+    Hi.Pretty
+  ghc-options:         -Wall
+  build-depends:       
+    base >= 4.9 && < 5,
+    bytestring,
+    containers,
+    directory,
+    filepath,
+    megaparsec,
+    mtl,
+    parser-combinators,
+    prettyprinter,
+    prettyprinter-ansi-terminal,
+    pure-zlib,
+    random,
+    scientific,
+    serialise,
+    text,
+    time,
+    transformers,
+    zlib,
+    ListLike
+  default-language:    Haskell2010
+
+executable hi
+  main-is:             Main.hs
+  other-modules:
+    Paths_hi
+  hs-source-dirs:      app
+  ghc-options:         -Wall
+  build-depends:       
+    base >= 4.9 && < 5,
+    containers,
+    haskeline,
+    hi,
+    megaparsec,
+    prettyprinter,
+    prettyprinter-ansi-terminal
+  default-language:    Haskell2010
