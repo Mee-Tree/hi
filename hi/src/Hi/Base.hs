@@ -12,12 +12,12 @@ module Hi.Base
   , HiError (..)
   , HiAction (..)
   , HiMonad (..)
-  , HiValuable (..)
+  , HasHiValue (..)
   ) where
 
 import Codec.Serialise (Serialise)
 import Data.ByteString (ByteString)
-import Data.Map (Map)
+import Data.Map (Map, mapKeys)
 import Data.Ratio ((%))
 import Data.Sequence (Seq, fromList)
 import Data.Text (Text, pack, singleton)
@@ -172,50 +172,50 @@ data HiAction
 class Monad m => HiMonad m where
   runAction :: HiAction -> m HiValue
 
-class HiValuable a where
+class HasHiValue a where
   toValue :: a -> HiValue
 
   returnValue :: Monad m => a -> m HiValue
   returnValue = return . toValue
 
-instance HiValuable Bool where
+instance HasHiValue Bool where
   toValue = HiValueBool
 
-instance HiValuable Rational where
+instance HasHiValue Rational where
   toValue = HiValueNumber
 
-instance {-# OVERLAPPABLE #-} Integral a => HiValuable a where
+instance {-# OVERLAPPABLE #-} Integral a => HasHiValue a where
   toValue = toValue . (% 1) . toInteger
 
-instance HiValuable Text where
+instance HasHiValue Text where
   toValue = HiValueString
 
-instance HiValuable String where
+instance HasHiValue String where
   toValue = toValue . pack
 
-instance HiValuable Char where
+instance HasHiValue Char where
   toValue = toValue . singleton
 
-instance HiValuable ByteString where
+instance HasHiValue ByteString where
   toValue = HiValueBytes
 
-instance HiValuable (Seq HiValue) where
-  toValue = HiValueList
+instance HasHiValue a => HasHiValue (Seq a) where
+  toValue = HiValueList . (toValue <$>)
 
-instance HiValuable [HiValue] where
+instance {-# OVERLAPPABLE #-} HasHiValue a => HasHiValue [a] where
   toValue = toValue . fromList
 
-instance HiValuable HiFun where
+instance HasHiValue HiFun where
   toValue = HiValueFunction
 
-instance HiValuable HiAction where
+instance HasHiValue HiAction where
   toValue = HiValueAction
 
-instance HiValuable UTCTime where
+instance HasHiValue UTCTime where
   toValue = HiValueTime
 
-instance HiValuable (Map HiValue HiValue) where
-  toValue = HiValueDict
+instance (HasHiValue k, HasHiValue v) => HasHiValue (Map k v) where
+  toValue = HiValueDict . (toValue <$>) . (mapKeys toValue)
 
-instance HiValuable HiValue where
+instance HasHiValue HiValue where
   toValue = id

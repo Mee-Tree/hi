@@ -24,7 +24,7 @@ import System.Directory (canonicalizePath, createDirectory, doesDirectoryExist, 
 import System.FilePath ((</>))
 import System.Random.Stateful (getStdRandom, uniformR)
 
-import Hi.Base (HiAction (..), HiMonad, HiValuable (returnValue, toValue), HiValue (..), runAction)
+import Hi.Base (HasHiValue (returnValue, toValue), HiAction (..), HiMonad, HiValue (..), runAction)
 
 import qualified Data.ByteString as B (readFile, writeFile)
 import qualified Data.Text as T (pack)

@@ -20,7 +20,7 @@ import Data.Time (UTCTime)
 import GHC.Real (Ratio ((:%)))
 import Text.Printf (printf)
 
-import Hi.Base (HiAction (..), HiFun (..), HiValuable (toValue), HiValue (..))
+import Hi.Base (HasHiValue (toValue), HiAction (..), HiFun (..), HiValue (..))
 
 import qualified Data.ByteString.Char8 as B (null, unpack)
 

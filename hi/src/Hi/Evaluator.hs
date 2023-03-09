@@ -3,6 +3,7 @@
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE PackageImports    #-}
+{-# LANGUAGE TupleSections     #-}
 {-# LANGUAGE TypeApplications  #-}
 
 module Hi.Evaluator
@@ -29,9 +30,9 @@ import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Time (addUTCTime, diffUTCTime)
 import Text.Read (readMaybe)
 
-import Hi.Base (HiAction (HiActionChDir, HiActionEcho, HiActionMkDir, HiActionRand, HiActionRead, HiActionWrite),
-                HiError (..), HiExpr (..), HiFun (..), HiMonad (runAction), HiValuable (..),
-                HiValue (..))
+import Hi.Base (HasHiValue (..),
+                HiAction (HiActionChDir, HiActionEcho, HiActionMkDir, HiActionRand, HiActionRead, HiActionWrite),
+                HiError (..), HiExpr (..), HiFun (..), HiMonad (runAction), HiValue (..))
 
 import qualified "pure-zlib" Codec.Compression.Zlib as Z.P (DecompressionError, decompress)
 import qualified "zlib" Codec.Compression.Zlib as Z (CompressParams (compressLevel),
@@ -118,7 +119,7 @@ evalFun HiFunMul [a, b] = case (a, b) of
   (HiValueBytes x, HiValueNumber y)  -> y `times` x
   _                                  -> throwError HiErrorInvalidArgument
   where
-    times :: (HiValuable a, Semigroup a, MonadError HiError m) => Rational -> a -> m HiValue
+    times :: (HasHiValue a, Semigroup a, MonadError HiError m) => Rational -> a -> m HiValue
     times n x = if integer n && n > 0 then returnValue $ numerator n `stimes` x
                 else throwError HiErrorInvalidArgument
 evalFun HiFunAdd [a, b] = case (a, b) of
@@ -156,9 +157,9 @@ evalFun HiFunTrim [a] = case a of
   _                 -> throwError HiErrorInvalidArgument
 evalFun HiFunList xs = returnValue xs
 evalFun HiFunRange [a, b] = case (a, b) of
-  (HiValueNumber x, HiValueNumber y)     -> returnValue $ toValue <$> [x .. y]
-  (HiValueBool x, HiValueBool y)         -> returnValue $ toValue <$> [x .. y]
-  (HiValueFunction x, HiValueFunction y) -> returnValue $ toValue <$> [x .. y]
+  (HiValueNumber x, HiValueNumber y)     -> returnValue [x .. y]
+  (HiValueBool x, HiValueBool y)         -> returnValue [x .. y]
+  (HiValueFunction x, HiValueFunction y) -> returnValue [x .. y]
   _                                      -> throwError HiErrorInvalidArgument
 evalFun HiFunFold [f, a] = case a of
   (HiValueList x)   -> fold $ toList x
@@ -187,7 +188,7 @@ evalFun HiFunPackBytes [a] = case a of
     byte x = if integer x && between 0 255 x then return $ chr (fromEnum x)
              else throwError HiErrorInvalidArgument
 evalFun HiFunUnpackBytes [a] = case a of
-  (HiValueBytes x) -> returnValue $ toValue . ord <$> B.unpack x
+  (HiValueBytes x) -> returnValue $ ord <$> B.unpack x
   _                -> throwError HiErrorInvalidArgument
 evalFun HiFunEncodeUtf8 [a] = case a of
   (HiValueString x) -> returnValue $ encodeUtf8 x
@@ -245,13 +246,13 @@ evalFun HiFunEcho [a] = case a of
   (HiValueString x) -> returnValue $ HiActionEcho x
   _                 -> throwError HiErrorInvalidArgument
 evalFun HiFunCount [a] = case a of
-  (HiValueString x) -> count toValue (T.unpack x)
-  (HiValueBytes x)  -> count (toValue . ord) (B.unpack x)
-  (HiValueList x)   -> count id (toList x)
+  (HiValueString x) -> count $ T.unpack x
+  (HiValueBytes x)  -> count $ ord <$> B.unpack x
+  (HiValueList x)   -> count $ toList x
   _                 -> throwError HiErrorInvalidArgument
   where
-    count :: MonadError HiError m => (a -> HiValue) -> [a] -> m HiValue
-    count f xs = returnValue $ toValue <$> M.fromListWith (+) ((\x -> (f x, 1 :: Int)) <$> xs)
+    count :: (MonadError HiError m, HasHiValue a, Ord a) => [a] -> m HiValue
+    count xs = returnValue $ M.fromListWith (+) ((, 1 :: Int) <$> xs)
 evalFun HiFunKeys [a] = case a of
   (HiValueDict x) -> returnValue $ M.keys x
   _               -> throwError HiErrorInvalidArgument
@@ -259,12 +260,12 @@ evalFun HiFunValues [a] = case a of
   (HiValueDict x) -> returnValue $ M.elems x
   _               -> throwError HiErrorInvalidArgument
 evalFun HiFunInvert [a] = case a of
-  (HiValueDict x) -> returnValue $ toValue <$> M.fromListWith (++) ((\(k, v) -> (v, [k])) <$> M.toList x)
+  (HiValueDict x) -> returnValue $ M.fromListWith (++) ((\(k, v) -> (v, [k])) <$> M.toList x)
   _               -> throwError HiErrorInvalidArgument
 evalFun _ _ = throwError HiErrorArityMismatch
 
 -- | Permorms either indexing or slicing based on the number of arguments.
-indexOrSlice :: (HiMonad m, HiValuable l, HiValuable a, ListLike l a) => l -> [HiValue] -> ExceptT HiError m HiValue
+indexOrSlice :: (HiMonad m, HasHiValue l, HasHiValue a, ListLike l a) => l -> [HiValue] -> ExceptT HiError m HiValue
 indexOrSlice l [a] = case a of
   (HiValueNumber x) | int x -> return $ index (fromEnum x)
   _                         -> throwError HiErrorInvalidArgument
@@ -278,7 +279,7 @@ indexOrSlice l [a, b] = case (a, b) of
   (HiValueNull, HiValueNumber y)     -> toValue <$> slice l 0 y
   _                                  -> throwError HiErrorInvalidArgument
   where
-    slice :: (MonadError HiError m, ListLike l a, HiValuable a) => l -> Rational -> Rational -> m l
+    slice :: (MonadError HiError m, ListLike l a) => l -> Rational -> Rational -> m l
     slice xs x y = let
         from = adjustIdx (fromEnum x) len
         to = adjustIdx (fromEnum y) len
