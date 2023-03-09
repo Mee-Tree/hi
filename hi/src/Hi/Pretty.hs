@@ -4,6 +4,7 @@
 module Hi.Pretty
   ( prettyValue
   , prettyError
+  , prettyErrorViaShow
   ) where
 
 import Data.ByteString (ByteString)
@@ -105,6 +106,10 @@ prettyValue x = annotate (style x) $ case x of
   HiValueAction a   -> prettyAction a
   HiValueTime t     -> prettyTime t
 
--- | Pretty-prints the given object like an error.
-prettyError :: Show a => a -> Doc AnsiStyle
-prettyError = annotate (color Red <> bold) . ("error:" <+>) . viaShow
+-- | Pretty-prints the given string like an error.
+prettyError :: String -> Doc AnsiStyle
+prettyError = annotate (color Red <> bold) . ("error:" <+>) . pretty
+
+-- | Pretty-prints the given object like an error (using 'Show').
+prettyErrorViaShow :: Show a => a -> Doc AnsiStyle
+prettyErrorViaShow = prettyError . show

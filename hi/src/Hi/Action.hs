@@ -35,10 +35,19 @@ data HiPermission
   = AllowRead
   | AllowWrite
   | AllowTime
-  deriving (Eq, Ord, Show, Enum, Bounded)
+  deriving (Eq, Ord, Enum, Bounded)
+
+instance Show HiPermission where
+  show = \case
+    AllowRead  -> "read"
+    AllowWrite -> "write"
+    AllowTime  -> "time"
 
 data PermissionException = PermissionRequired HiPermission
-  deriving (Eq, Show)
+  deriving (Eq)
+
+instance Show PermissionException where
+  show (PermissionRequired p) = show p ++ " permission required"
 
 instance Exception PermissionException
 

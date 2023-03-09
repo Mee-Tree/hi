@@ -146,7 +146,14 @@ data HiError
   | HiErrorInvalidFunction
   | HiErrorArityMismatch
   | HiErrorDivideByZero
-  deriving (Show, Eq)
+  deriving (Eq)
+
+instance Show HiError where
+  show = \case
+    HiErrorInvalidArgument -> "invalid argument"
+    HiErrorInvalidFunction -> "invalid function"
+    HiErrorArityMismatch   -> "arity mismatch"
+    HiErrorDivideByZero    -> "division by zero"
 
 -- | Actions (read, write, ...).
 data HiAction
