@@ -9,6 +9,7 @@ module Hi.Action
 
 import Control.Exception (Exception, throwIO)
 import Control.Monad (when)
+import Control.Monad.Catch (MonadCatch, MonadMask, MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Reader (ReaderT (..))
 import Data.ByteString (ByteString)
@@ -52,7 +53,8 @@ instance Show PermissionException where
 instance Exception PermissionException
 
 newtype HIO a = HIO { runHIO :: Set HiPermission -> IO a }
-  deriving (Functor, Applicative, Monad, MonadIO) via (ReaderT (Set HiPermission) IO)
+  deriving (Functor, Applicative, Monad, MonadIO, MonadThrow, MonadCatch, MonadMask)
+  via (ReaderT (Set HiPermission) IO)
 
 instance HiMonad HIO where
   runAction = \case

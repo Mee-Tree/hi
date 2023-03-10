@@ -8,18 +8,19 @@ maintainer:          meetree@ya.ru
 
 library
   hs-source-dirs:      src
-  exposed-modules:    
+  exposed-modules:
     Hi.Action
     Hi.Base
     Hi.Evaluator
     Hi.Parser
     Hi.Pretty
   ghc-options:         -Wall
-  build-depends:       
+  build-depends:
     base >= 4.9 && < 5,
     bytestring,
     containers,
     directory,
+    exceptions,
     filepath,
     megaparsec,
     mtl,
@@ -43,12 +44,14 @@ executable hi
     Paths_hi
   hs-source-dirs:      app
   ghc-options:         -Wall
-  build-depends:       
+  build-depends:
     base >= 4.9 && < 5,
     containers,
+    exceptions,
     haskeline,
     hi,
     megaparsec,
     prettyprinter,
-    prettyprinter-ansi-terminal
+    prettyprinter-ansi-terminal,
+    transformers
   default-language:    Haskell2010
